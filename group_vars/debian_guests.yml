@@ -1,0 +1,3 @@
+---
+update_strategy: dist
+guest_parallel_forks: 10

@@ -1,0 +1,14 @@
+---
+- name: Report reboot requirement across all hosts
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Check whether reboot is required
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: Report reboot requirement
+      ansible.builtin.debug:
+        msg: "host={{ inventory_hostname }} reboot_required={{ reboot_required.stat.exists | default(false) }}"

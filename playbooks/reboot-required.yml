@@ -1,0 +1,16 @@
+---
+- name: Reboot hosts only when required
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Check whether reboot is required
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: Reboot host when required
+      ansible.builtin.reboot:
+        reboot_timeout: 1800
+        msg: "Reboot triggered by Ansible because reboot was required"
+      when: reboot_required.stat.exists | default(false)

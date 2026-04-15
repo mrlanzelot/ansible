@@ -1,0 +1,17 @@
+---
+- name: Check SSH and Python connectivity on all managed hosts
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Ping managed host
+      ansible.builtin.ping:
+
+    - name: Show remote SSH login user without become
+      ansible.builtin.command: id -un
+      become: false
+      register: login_user
+
+    - name: Report login user
+      ansible.builtin.debug:
+        msg: "ssh_login_user={{ login_user.stdout }}"

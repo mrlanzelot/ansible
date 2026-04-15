@@ -1,0 +1,6 @@
+---
+- import_playbook: check-connectivity.yml
+- import_playbook: update-proxmox.yml
+- import_playbook: update-guests.yml
+- import_playbook: reboot-required-report.yml
+- import_playbook: reboot-required.yml

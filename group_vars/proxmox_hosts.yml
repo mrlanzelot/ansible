@@ -1,0 +1,4 @@
+---
+update_strategy: dist
+serial_batch_size: 1
+guest_parallel_forks: 5

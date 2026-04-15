@@ -1,0 +1,38 @@
+---
+- name: Update Debian and Ubuntu guests in parallel
+  hosts: debian_guests
+  gather_facts: true
+
+  pre_tasks:
+    - name: Refresh apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: "{{ apt_cache_valid_time }}"
+
+  tasks:
+    - name: Upgrade packages on guest
+      ansible.builtin.apt:
+        upgrade: "{{ update_strategy }}"
+        autoremove: true
+        autoclean: true
+
+    - name: Check whether reboot is required
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: Report reboot status
+      ansible.builtin.debug:
+        msg: "host={{ inventory_hostname }} reboot_required={{ reboot_required.stat.exists | default(false) }}"
+
+    - name: Reboot guest when required and enabled
+      ansible.builtin.reboot:
+        reboot_timeout: "{{ reboot_timeout_seconds }}"
+        msg: "Reboot triggered by Ansible after package updates"
+      when:
+        - run_reboots | bool
+        - reboot_required.stat.exists | default(false)
+
+  post_tasks:
+    - name: Confirm guest is reachable after update
+      ansible.builtin.ping:

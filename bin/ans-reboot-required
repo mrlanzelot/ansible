@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd /home/martin/ansible
+exec ansible-playbook -i inventory.ini playbooks/reboot-required.yml
+
