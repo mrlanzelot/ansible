@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export PATH=/usr/local/bin:/usr/bin:/bin
+
+RAW="$(mktemp)"
+trap 'rm -f "$RAW"' EXIT
+
+/home/martin/ansible/bin/ans-site | tee "$RAW"
+
+echo
+echo "===== SUMMARY ====="
+
+if grep -q "failed=[1-9]" "$RAW" || grep -q "unreachable=[1-9]" "$RAW"; then
+  echo "Update job finished with problems."
+  echo
+  echo "Affected hosts:"
+  grep -E '^[a-zA-Z0-9._-]+\s+: ok=.*(failed=[1-9]|unreachable=[1-9])' "$RAW" || true
+  exit 1
+fi
+
+CHANGED_HOSTS="$(grep -E '^[a-zA-Z0-9._-]+\s+: ok=.*changed=[1-9]' "$RAW" || true)"
+
+if [ -z "$CHANGED_HOSTS" ]; then
+  echo "No package updates were applied on any node."
+else
+  echo "Updates were applied on these nodes:"
+  echo "$CHANGED_HOSTS"
+fi
+
+echo
+echo "Reboot status:"
+grep -E 'msg: host=.*reboot_required=' "$RAW" || echo "No reboot lines found."
+
+echo
+echo "Disk usage (Proxmox hosts):"
+DISK_LINES="$(grep -E 'msg: host=.*disk_used_pct=' "$RAW" || true)"
+if [ -z "$DISK_LINES" ]; then
+  echo "No disk lines found."
+else
+  echo "$DISK_LINES"
+  if echo "$DISK_LINES" | grep -q 'status=WARNING'; then
+    echo
+    echo "WARNING: One or more Proxmox disks are above the usage threshold!"
+  fi
+fi

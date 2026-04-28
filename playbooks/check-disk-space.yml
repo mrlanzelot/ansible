@@ -1,0 +1,32 @@
+---
+- name: Check disk space on Proxmox hosts
+  hosts: proxmox_hosts
+  gather_facts: false
+
+  tasks:
+    - name: Get disk usage for real filesystems
+      ansible.builtin.shell: >
+        df --output=pcent,target -x tmpfs -x devtmpfs -x squashfs
+        | tail -n +2
+        | awk '{gsub(/%/,"",$1); print $1, $2}'
+      register: disk_usage_raw
+      changed_when: false
+
+    - name: Report disk usage per mount
+      ansible.builtin.debug:
+        msg: >-
+          host={{ inventory_hostname }}
+          mount={{ item.split()[1] }}
+          disk_used_pct={{ item.split()[0] }}%
+          status={{ 'WARNING' if item.split()[0] | int >= disk_threshold_pct else 'OK' }}
+      loop: "{{ disk_usage_raw.stdout_lines }}"
+
+    - name: Fail if disk usage exceeds threshold
+      ansible.builtin.fail:
+        msg: >-
+          Disk usage on {{ inventory_hostname }}:{{ item.split()[1] }}
+          is {{ item.split()[0] }}% (threshold: {{ disk_threshold_pct }}%)
+      when:
+        - disk_fail_on_threshold | bool
+        - item.split()[0] | int >= disk_threshold_pct
+      loop: "{{ disk_usage_raw.stdout_lines }}"
